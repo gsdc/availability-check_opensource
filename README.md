@@ -65,7 +65,7 @@ ansible roles for services availability check
    * [서비스] 및 [테스트 서버] 정보
      ```
      [serviceB]
-     serviceB-ce2.sdfarm.kr ansible_host=192.168.10.100
+     serviceB.domain.com ansible_host=192.168.10.100
      ```
 1. git  저장소 최상위 디렉토리에서 ```serviceA.yml```을 ```[서비스].yml```로 복사합니다.
    ```bash
