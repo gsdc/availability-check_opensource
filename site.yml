@@ -1,0 +1,7 @@
+---
+
+- name: ServiceA
+  ansible.builtin.import_playbook: serviceA.yml
+
+- name: ServiceB
+  ansible.builtin.import_playbook: serviceB.yml

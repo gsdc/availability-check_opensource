@@ -1,0 +1,31 @@
+#!/bin/bash
+
+if [ -e dump.dat ]; then
+  rm dump.dat
+fi
+
+## WebDAVs Protocol Test
+{% for check_file in webdav_check_files %}
+### listing
+/usr/bin/timeout 5 /usr/bin/gfal-cat davs://{{ webdav_hostname }}:{{ webdav_port }}/{{ check_file }}
+if [ $? -ne 0 ]; 
+then 
+    exit -1
+fi
+{% endfor %}
+
+dd if=/dev/zero of=dump.dat bs=5MB count=1
+## gfal-copy
+/usr/bin/gfal-copy -f dump.dat davs://{{ webdav_hostname }}:{{ webdav_port}}/{{ webdav_write_test_path }}
+if [ $? -ne 0 ]; 
+then 
+    exit -1
+fi
+## gfal-rm
+/usr/bin/gfal-rm davs://{{ webdav_hostname }}:{{ webdav_port }}/{{ webdav_write_test_path }}/dump.dat
+if [ $? -ne 0 ]; 
+then 
+    exit -1
+fi
+
+rm dump.dat

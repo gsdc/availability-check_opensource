@@ -1,0 +1,47 @@
+---
+
+- name: ServiceA Availability test
+  hosts: serviceA
+  become: false
+  strategy: linear
+  vars:
+    - service: "{{ group_names[0] }}"
+    - target_hosts: "{{ groups[service] }}"
+    - hostname: "{{ item }}"
+  vars_files:
+    - "group_vars/{{ group_names[0] }}/vault_vars.yml"
+  ignore_errors: true
+  pre_tasks:
+    - name: Override the service specific check list (defaults are defined in role's default variables)
+      ansible.builtin.set_fact:
+        checklist: "{{ checklist }}"
+      run_once: true
+      delegate_to: localhost
+  roles:
+    - { role: availability-check, vars: {availability_check_checklist: "{{ checklist }}"} }
+  tasks: []
+  post_tasks:
+    - name: Merge all the check_results facts to single dictionary
+      ansible.builtin.set_fact:
+        result_dict: "{{ result_dict | default({}) | combine({hostname: hostvars[hostname]['check_results']}) }}"
+      with_items: "{{ target_hosts }}"
+      run_once: true
+      delegate_to: localhost
+    - name: Push the evaluated metrics to prometheus servers
+      ansible.builtin.command:
+        argv:
+          - python3
+          - push_metrics.py
+          - "-e{{ prometheus_pushgateway_endpoint }}"
+          - "-l{{ checklist | join(',') }}"
+          - "-s{{ service }}"
+          - "-r{{ result_dict }}"
+          - "-m{{ checkmode }}"
+      register: push_results
+      run_once: true
+      delegate_to: localhost
+    - name: Debug the push results
+      ansible.builtin.debug:
+        msg: "{{ push_results }}"
+      run_once: true
+      delegate_to: localhost

@@ -1,0 +1,36 @@
+#!/bin/bash
+
+
+if [ -e dump.dat ]; then
+  rm dump.dat
+fi
+
+## XRootD 경로상의 파일 내용 확인
+{% for check_file in xrootd_check_files %}
+/usr/bin/timeout {{ command_timeout }} /usr/bin/xrdfs {{ xrootd_hostname }}:{{ xrootd_port }} tail -c 1 {{ check_file }}
+
+if [ $? -ne 0 ]; 
+then
+    exit -1
+fi
+{% endfor %}
+
+dd if=/dev/zero of=dump.dat bs=5MB count=1
+### 파일 복사 테스트
+/usr/bin/xrdcp -f dump.dat root://{{ xrootd_hostname }}:{{ xrootd_port }}/{{ xrootd_write_test_path }}
+
+if [ $? -ne 0 ];
+then
+  exit -1
+fi
+
+### 파일 삭제 테스트
+/usr/bin/xrdfs {{ xrootd_hostname }}:{{ xrootd_port }} rm {{ xrootd_write_test_path }}/dump.dat
+
+if [ $? -ne 0 ];
+then
+  exit -1
+fi
+
+## dump 파일 삭제
+rm dump.dat

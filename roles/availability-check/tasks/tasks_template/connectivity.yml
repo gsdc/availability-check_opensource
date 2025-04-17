@@ -1,0 +1,22 @@
+---
+
+- name: Get sshd service status
+  ansible.builtin.systemd:
+    name: "sshd.service"
+  register: sshd_service_status
+
+- name: Update the result for the connectivity test
+  ansible.utils.update_fact:
+    updates:
+      - path: check_results.connectivity
+        value: true
+  when:
+    - sshd_service_status.status.ActiveState == "active"
+    - true
+  register: updated
+
+- name: Save the result for the connectivity test
+  ansible.builtin.set_fact:
+    check_results: "{{ updated.check_results }}"
+  when:
+    - updated.changed

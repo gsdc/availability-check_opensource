@@ -1,0 +1,35 @@
+{% if ((check_apptainer=="True") and (job.container_image != "")):  %}
+universe = container
+container_image = {{ job.container_image }}
+{% else %}
+universe = vanilla
+{% endif %}
+
+{% if check_x509userproxy %}
+use_x509userproxy = true
+{% elif check_scitokens %}
+use_scitokens = true
+{% endif %}
+
+
+# Files
+executable = /usr/bin/env
+output = test_$(Process).out
+error = test_$(Process).err
+log = /dev/null
+
+# Request resources
+request_memory = 512M
+
+# Rank
+Rank = SlotID 
+
+# File transfer behavior
+ShouldTransferFiles = YES
+WhenToTransferOutput = ON_EXIT
+
+{% if accounting_group !="" %}
+accounting_group = {{ accounting_group }}
+{% endif %}
+queue 1
+

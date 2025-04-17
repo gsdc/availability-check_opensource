@@ -1,0 +1,29 @@
+---
+# defaults file for availability-check
+
+checklist: ['connectivity', 'storageio', 'batch', 'job']
+target_service: "{{ hostvars[inventory_hostname]['group_names'][0] }}"
+target_node: "{{ hostvars[inventory_hostname]['inventory_hostname'] }}"
+
+container_image: ""
+accounting_group: "" 
+check_apptainer: False
+check_x509userproxy: False
+check_scitokens: False
+condor_job_timeout: 180 
+command_timeout: 5 
+
+nfs_mountpoint: "/{{ target_service }}"
+nfs_write_test_path: "{{ nfs_mountpoint }}"
+
+xrootd_hostname: ""
+xrootd_port: 1094
+xrootd_write_test_path: "/tmp"
+xrootd_check_files: 
+  - "/store/temp/test.dat"
+ 
+webdav_hostname: ""
+webdav_port: 2880
+webdav_write_test_path: "/tmp"
+webdav_check_files:
+  - "/store/temp/test.dat"

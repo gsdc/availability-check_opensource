@@ -1,0 +1,24 @@
+---
+checklist: ['connectivity', 'storageio', 'xrootd', 'batch', 'job']
+
+ansible_user: test_user
+
+nfs_mountpoint: /target
+nfs_write_test_path: "{{ nfs_mountpoint }}/{{ ansible_user }}"
+
+
+webdav_hostname: webdav.test.target
+webdav_port: 2880
+webdav_check_files:
+  - "/webdav/target/{{ ansible_user }}"
+webdav_write_test_path: "/webdav/target/{{ ansible_user }}"
+
+xrootd_hostname: xrootd.test.target
+xrootd_port: 1094
+xrootd_check_files: "{{ webdav_check_files }}"
+xrootd_write_test_path: "{{ webdav_write_test_path }}"
+
+accounting_group: "group_1"
+condor_job_timeout: 600
+command_timeout: 5
+

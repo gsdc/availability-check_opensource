@@ -1,0 +1,46 @@
+---
+
+- name: HTCondor 테스트 작업 제출 명세를 작성합니다.
+  ansible.builtin.template:
+    src: condor_test.sub.j2
+    dest: /tmp/condor_test.sub
+- name: 작성된 작업명세를 제출합니다.
+  ansible.builtin.shell:
+    cmd: "condor_submit /tmp/condor_test.sub"
+  register: condor_job_submit
+- name: 작업 제출 상태 보고
+  debug:
+    var: condor_job_submit
+
+- name: condor_history에 해당 작업이 존재하는지 검색합니다.
+  ansible.builtin.shell:
+    cmd: "timeout 5 condor_history {{ condor_job_submit.stdout.split()[-1] | int }} -limit 1"
+  register: condor_job_history
+  until: condor_job_history.rc == 0
+  retries: 18
+  delay: 10
+
+- name: 작업이 종료되지 않았다면 삭제합니다.
+  ansible.builtin.shell:
+    cmd: "condor_rm {{ condor_job_submit.stdout.split()[-1] | int }}"
+  when: condor_job_history.rc == 124
+
+- name: 작업 종료 보고
+  debug:
+    var: condor_job_history
+
+- name: 테스트 결과를 기록합니다.
+  ansible.utils.update_fact:
+    updates:
+      - path: check_results.job
+        value: true
+  when: 
+    - condor_job_submit.rc == 0
+    - condor_job_history.rc == 0
+  register: updated
+- name: Save the result for the batch test
+  ansible.builtin.set_fact:
+    check_results: "{{ updated.check_results }}"
+  when:
+    - updated.changed
+

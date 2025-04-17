@@ -1,0 +1,60 @@
+---
+# tasks file for availability-check
+
+- name: Print debug messages
+  ansible.builtin.debug:
+    msg:
+      - "Service : {{ target_service }}"
+      - "CheckList : {{ checklist }}"
+
+- name: Prepare and initialize all the corresponding custom facts
+  ansible.builtin.set_fact:
+    check_results: "{{ check_results | default({}) | combine({item: false}) }}"
+  with_items: "{{ checklist }}"
+
+- name: Block for checking connectivity
+  when:
+    - ('connectivity' | string) in checklist
+  ignore_errors: true
+  block:
+    - name: Include connectivity check test
+      ansible.builtin.include_tasks: "{{ target_service }}/connectivity.yml"
+
+- name: Block for checking storage io
+  when:
+    - ('storageio' | string) in checklist
+  ignore_errors: true
+  block:
+    - ansible.builtin.include_tasks: "{{ target_service }}/storageio.yml"
+
+- name: Block for checking xrootd
+  when:
+    - ('xrootd' | string) in checklist
+  ignore_errors: true
+  block:
+    - ansible.builtin.include_tasks: "{{ target_service }}/xrootd.yml"
+
+- name: Block for checking webdav
+  when:
+    - ('webdav' | string) in checklist
+  ignore_errors: true
+  block:
+    - ansible.builtin.include_tasks: "{{ target_service }}/webdav.yml"
+
+- name: Block for checking batch system status
+  when:
+    - ('batch' | string) in checklist
+  ignore_errors: true
+  block:
+    - ansible.builtin.include_tasks: "{{ target_service }}/batch.yml"
+
+- name: Block for checking pilot job execution
+  when:
+    - ('job' | string) in checklist
+  ignore_errors: true
+  block:
+    - ansible.builtin.include_tasks: "{{ target_service }}/job.yml"
+
+- name: Print all the exported facts for this node
+  ansible.builtin.debug:
+    var: hostvars[inventory_hostname]['check_results']

@@ -1,0 +1,6 @@
+---
+ansible_become_user: root
+ansible_port: 22
+
+checkmode: 'optimistic'
+prometheus_pushgateway_endpoint: "http://192.168.10.2:9091"

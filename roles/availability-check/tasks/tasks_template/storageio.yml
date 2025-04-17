@@ -1,0 +1,54 @@
+---
+
+- name: Generate a random string with the length of 1024
+  ansible.builtin.set_fact:
+    random_strings: "{{ lookup('password', '/dev/null length=1024 chars=ascii_letters,digits') }}"
+
+- name: Create file group and permission
+  ansible.builtin.file:
+    path: "{{ nfs_write_test_path }}/storage_check_{{ target_node }}"
+    state: touch
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+  register: file_creation
+
+- name: Write the random contents to the file
+  ansible.builtin.copy:
+    content: "{{ random_strings }}"
+    dest: "{{ nfs_write_test_path }}/storage_check_{{ target_node }}"
+    mode: preserve
+  register: file_write
+
+- name: Retrieve the file and calculate the checksum
+  ansible.builtin.stat:
+    path: "{{ nfs_write_test_path }}/storage_check_{{ target_node }}"
+    get_checksum: true
+    checksum_algorithm: sha1
+  register: file_stat
+
+- name: Delete the file
+  ansible.builtin.file:
+    path: "{{ nfs_write_test_path }}/storage_check_{{ target_node }}"
+    state: absent
+  register: file_deletion
+
+- name: Update the result for the storage io test
+  ansible.utils.update_fact:
+    updates:
+      - path: check_results.storageio
+        value: true
+  when:
+    - not file_creation.failed
+    - not file_write.failed
+    - not file_stat.failed
+    - file_stat.stat.checksum == (random_strings|checksum)
+    - not file_deletion.failed
+    - ( ansible_mounts | selectattr('mount', 'equalto', nfs_mountpoint) | list | length ) > 0
+  register: updated
+
+- name: Save the result for the storage io test
+  ansible.builtin.set_fact:
+    check_results: "{{ updated.check_results }}"
+  when:
+    - updated.changed

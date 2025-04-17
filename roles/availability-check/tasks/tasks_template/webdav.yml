@@ -1,0 +1,40 @@
+---
+
+- name: 그리드 프록시 인증서 발급
+  ansible.builtin.shell: "echo {{ voms_pw }} | voms-proxy-init --voms cms --pwstdin"
+  register: proxyca_init
+
+- name: 그리드 프록시 사용자 인증서 정보를 출력합니다.
+  ansible.builtin.debug:
+    msg: "{{ proxyca_init.stdout }}"
+
+- name: WebDAV 테스트를 위한 스크립트를 복사합니다.
+  ansible.builtin.template:
+    src: test_webdav.sh.j2
+    dest: /tmp/test_webdav.sh
+    mode: "700"
+
+- name: CMS T3 WebDAV Protocol 점검
+  ansible.builtin.shell: /tmp/test_webdav.sh
+  register: check_cmst3_webdav
+
+- name: 테스트 스크립트 삭제
+  ansible.builtin.file:
+    path: /tmp/test_webdav.sh
+    state: absent
+
+- name: WebDAV 테스트 결과를 기록합니다.
+  ansible.utils.update_fact:
+    updates:
+      - path: check_results.webdav
+        value: true
+  when:
+    - not proxyca_init.failed
+    - not check_cmst3_webdav.failed
+  register: updated
+
+- name: Save the result for the storage io test
+  ansible.builtin.set_fact:
+    check_results: "{{ updated.check_results }}"
+  when:
+    - updated.changed
